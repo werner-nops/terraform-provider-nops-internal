@@ -18,7 +18,7 @@ var (
 	}
 	nops_api_key = os.Getenv("NOPS_API_KEY")
 	// providerConfig is a shared configuration to combine with the actual
-	// test configuration so the HashiCups client is properly configured.
+	// test configuration so the nOps client is properly configured.
 	// It is also possible to use the environment variables instead,
 	// such as updating the Makefile and running the testing through that tool.
 	providerConfig = fmt.Sprintf(`
