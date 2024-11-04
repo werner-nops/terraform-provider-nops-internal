@@ -16,7 +16,7 @@ type NewProject struct {
 	MasterPayerAccountNumber string `json:"master_payer_account_number"`
 }
 
-type Notification struct {
+type Integration struct {
 	RoleArn            string             `json:"role_arn"`
 	BucketName         string             `json:"bucket_name"`
 	AccountNumber      string             `json:"account_number"`
@@ -32,6 +32,6 @@ type ResourceProperties struct {
 	ExternalID    string `json:"ExternalID"`
 }
 
-type NotificationResponse struct {
+type IntegrationResponse struct {
 	Status string `json:"status"`
 }

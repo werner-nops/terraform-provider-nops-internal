@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -14,17 +15,17 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &projectNotificationResource{}
-	_ resource.ResourceWithConfigure = &projectNotificationResource{}
+	_ resource.Resource              = &projectIntegrationResource{}
+	_ resource.ResourceWithConfigure = &projectIntegrationResource{}
 )
 
-// projectNotificationResource is the resource implementation.
-type projectNotificationResource struct {
+// projectIntegrationResource is the resource implementation.
+type projectIntegrationResource struct {
 	client *Client
 }
 
-type newProjectNotificationModel struct {
-	ID           types.String `tfsdk:"id"`
+type newProjectIntegrationModel struct {
+	ID           types.Int64  `tfsdk:"id"`
 	LastUpdated  types.String `tfsdk:"last_updated"`
 	ExternalID   types.String `tfsdk:"external_id"`
 	AwsAccountID types.String `tfsdk:"aws_account_id"`
@@ -32,13 +33,13 @@ type newProjectNotificationModel struct {
 	BucketName   types.String `tfsdk:"bucket_name"`
 }
 
-// NewprojectNotificationResource is a helper function to simplify the provider implementation.
-func NewProjectNotificationResource() resource.Resource {
-	return &projectNotificationResource{}
+// NewprojectIntegrationResource is a helper function to simplify the provider implementation.
+func NewProjectIntegrationResource() resource.Resource {
+	return &projectIntegrationResource{}
 }
 
 // Configure adds the provider configured client to the resource.
-func (r *projectNotificationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *projectIntegrationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Add a nil check when handling ProviderData because Terraform
 	// sets that data after it calls the ConfigureProvider RPC.
 	if req.ProviderData == nil {
@@ -60,17 +61,19 @@ func (r *projectNotificationResource) Configure(_ context.Context, req resource.
 }
 
 // Metadata returns the resource type name.
-func (r *projectNotificationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_notification"
+func (r *projectIntegrationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_integration"
 }
 
 // Schema defines the schema for the resource.
-func (r *projectNotificationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *projectIntegrationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Notifies the nOps platform a new account has linked to a project with the required input values." +
+			" This resource is mostly used only for secure connection with nOps APIs.",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
+			"id": schema.Int64Attribute{
 				Computed:    true,
-				Description: "Notification identifier",
+				Description: "Integration identifier",
 			},
 			"last_updated": schema.StringAttribute{
 				Computed:    true,
@@ -97,8 +100,8 @@ func (r *projectNotificationResource) Schema(_ context.Context, _ resource.Schem
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (r *projectNotificationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan newProjectNotificationModel
+func (r *projectIntegrationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan newProjectIntegrationModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -106,19 +109,19 @@ func (r *projectNotificationResource) Create(ctx context.Context, req resource.C
 	}
 
 	// Notify nOps with new values
-	var notification Notification
-	notification.RoleArn = plan.RoleArn.ValueString()
-	notification.BucketName = plan.BucketName.ValueString()
-	notification.AccountNumber = plan.AwsAccountID.ValueString()
-	notification.ExternalID = plan.ExternalID.ValueString()
-	notification.RequestType = "Create"
-	notification.ResourceProperties = ResourceProperties{
+	var integration Integration
+	integration.RoleArn = plan.RoleArn.ValueString()
+	integration.BucketName = plan.BucketName.ValueString()
+	integration.AccountNumber = plan.AwsAccountID.ValueString()
+	integration.ExternalID = plan.ExternalID.ValueString()
+	integration.RequestType = "Create"
+	integration.ResourceProperties = ResourceProperties{
 		ServiceBucket: plan.BucketName.ValueString(),
 		AWSAccountID:  plan.AwsAccountID.ValueString(),
 		RoleArn:       plan.RoleArn.ValueString(),
 		ExternalID:    plan.ExternalID.ValueString(),
 	}
-	_, err := r.client.NotifyNops(notification)
+	_, err := r.client.NotifyNops(integration)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error notifying nOps",
@@ -140,8 +143,8 @@ func (r *projectNotificationResource) Create(ctx context.Context, req resource.C
 	for _, project := range projects {
 		if types.StringValue(project.AccountNumber) == plan.AwsAccountID {
 			// Map response body to schema and populate Computed attribute values
-			tflog.Debug(ctx, "Upstream notification project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
-			plan.ID = types.StringValue(strconv.Itoa(project.ID))
+			tflog.Debug(ctx, "Upstream integration project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
+			plan.ID = types.Int64Value(int64(project.ID))
 			plan.RoleArn = types.StringValue(project.Arn)
 			plan.BucketName = types.StringValue(project.Bucket)
 			plan.AwsAccountID = types.StringValue(project.AccountNumber)
@@ -156,13 +159,13 @@ func (r *projectNotificationResource) Create(ctx context.Context, req resource.C
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Info(ctx, "Created nOps notification resource", map[string]any{"ID": plan.ID, "AwsAccountID": plan.AwsAccountID})
+	tflog.Info(ctx, "Created nOps integration resource", map[string]any{"ID": plan.ID, "AwsAccountID": plan.AwsAccountID})
 
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (r *projectNotificationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state newProjectNotificationModel
+func (r *projectIntegrationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state newProjectIntegrationModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -181,8 +184,8 @@ func (r *projectNotificationResource) Read(ctx context.Context, req resource.Rea
 	for _, project := range projects {
 		if types.StringValue(project.AccountNumber) == state.AwsAccountID {
 			// Map response body to schema and populate Computed attribute values
-			tflog.Debug(ctx, "Upstream notification project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
-			state.ID = types.StringValue(strconv.Itoa(project.ID))
+			tflog.Debug(ctx, "Upstream integration project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
+			state.ID = types.Int64Value(int64(project.ID))
 			state.RoleArn = types.StringValue(project.Arn)
 			state.BucketName = types.StringValue(project.Bucket)
 			state.AwsAccountID = types.StringValue(project.AccountNumber)
@@ -200,8 +203,8 @@ func (r *projectNotificationResource) Read(ctx context.Context, req resource.Rea
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (r *projectNotificationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan newProjectNotificationModel
+func (r *projectIntegrationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan newProjectIntegrationModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -209,23 +212,23 @@ func (r *projectNotificationResource) Update(ctx context.Context, req resource.U
 	}
 
 	// Notify nOps with updated values
-	var notification Notification
-	notification.RoleArn = plan.RoleArn.ValueString()
-	notification.BucketName = plan.BucketName.ValueString()
-	notification.AccountNumber = plan.AwsAccountID.ValueString()
-	notification.ExternalID = plan.ExternalID.ValueString()
-	notification.RequestType = "Update"
-	notification.ResourceProperties = ResourceProperties{
+	var integration Integration
+	integration.RoleArn = plan.RoleArn.ValueString()
+	integration.BucketName = plan.BucketName.ValueString()
+	integration.AccountNumber = plan.AwsAccountID.ValueString()
+	integration.ExternalID = plan.ExternalID.ValueString()
+	integration.RequestType = "Update"
+	integration.ResourceProperties = ResourceProperties{
 		ServiceBucket: plan.BucketName.ValueString(),
 		AWSAccountID:  plan.AwsAccountID.ValueString(),
 		RoleArn:       plan.RoleArn.ValueString(),
 		ExternalID:    plan.ExternalID.ValueString(),
 	}
-	_, err := r.client.NotifyNops(notification)
+	_, err := r.client.NotifyNops(integration)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating nOps project",
-			"Failed to notify, unexpected error: "+err.Error(),
+			"Failed to notify update, unexpected error: "+err.Error(),
 		)
 		return
 	}
@@ -243,8 +246,8 @@ func (r *projectNotificationResource) Update(ctx context.Context, req resource.U
 	for _, project := range projects {
 		if types.StringValue(project.AccountNumber) == plan.AwsAccountID {
 			// Map response body to schema and populate Computed attribute values
-			tflog.Debug(ctx, "Upstream notification project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
-			plan.ID = types.StringValue(strconv.Itoa(project.ID))
+			tflog.Debug(ctx, "Upstream integration project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
+			plan.ID = types.Int64Value(int64(project.ID))
 			plan.RoleArn = types.StringValue(project.Arn)
 			plan.BucketName = types.StringValue(project.Bucket)
 			plan.AwsAccountID = types.StringValue(project.AccountNumber)
@@ -259,16 +262,21 @@ func (r *projectNotificationResource) Update(ctx context.Context, req resource.U
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Info(ctx, "Updated nOps notification resource", map[string]any{"ID": plan.ID, "ExternalID": plan.ExternalID, "LastUpdated": plan.LastUpdated})
+	tflog.Info(ctx, "Updated nOps integration resource", map[string]any{"ID": plan.ID, "ExternalID": plan.ExternalID, "LastUpdated": plan.LastUpdated})
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (r *projectNotificationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// No current project delete API on the nOps platform, this is a manual process done in the UI
-	var state newProjectNotificationModel
+func (r *projectIntegrationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	// No current project delete API on the nOps platform, this is a manual process done in the nOps UI
+	var state newProjectIntegrationModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+func (r *projectIntegrationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Capability to import existing project already integrated into the nOps platform into the TF state without recreation.
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("aws_account_id"), req.ID)...)
 }

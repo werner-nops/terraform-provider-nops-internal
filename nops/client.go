@@ -121,7 +121,7 @@ func (c *Client) CreateProject(project NewProject) (*Project, error) {
 	return &projects, nil
 }
 
-func (c *Client) NotifyNops(payload Notification) (*NotificationResponse, error) {
+func (c *Client) NotifyNops(payload Integration) (*IntegrationResponse, error) {
 	rb, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (c *Client) NotifyNops(payload Notification) (*NotificationResponse, error)
 		return nil, err
 	}
 
-	status := NotificationResponse{}
+	status := IntegrationResponse{}
 	err = json.Unmarshal(body, &status)
 	if err != nil {
 		return nil, err

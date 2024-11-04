@@ -50,6 +50,7 @@ func (p *nopsIntegrationProvider) Metadata(_ context.Context, _ provider.Metadat
 // Schema defines the provider-level schema for configuration data.
 func (p *nopsIntegrationProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "",
 		Attributes: map[string]schema.Attribute{
 			"nops_api_key": schema.StringAttribute{
 				Optional:    true,
@@ -168,6 +169,6 @@ func (p *nopsIntegrationProvider) DataSources(_ context.Context) []func() dataso
 func (p *nopsIntegrationProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewProjectResource,
-		NewProjectNotificationResource,
+		NewProjectIntegrationResource,
 	}
 }

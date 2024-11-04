@@ -44,6 +44,7 @@ func (d *projectsDataSource) Metadata(_ context.Context, req datasource.Metadata
 // Schema defines the schema for the data source.
 func (d *projectsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "The projects datasource can be used to retrieve a list of created projects for a client. Use this data source as input for another resource.",
 		Attributes: map[string]schema.Attribute{
 			"projects": schema.ListNestedAttribute{
 				Computed: true,

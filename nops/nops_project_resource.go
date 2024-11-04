@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -14,8 +15,9 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &projectResource{}
-	_ resource.ResourceWithConfigure = &projectResource{}
+	_ resource.Resource                = &projectResource{}
+	_ resource.ResourceWithConfigure   = &projectResource{}
+	_ resource.ResourceWithImportState = &projectResource{}
 )
 
 // projectResource is the resource implementation.
@@ -23,8 +25,8 @@ type projectResource struct {
 	client *Client
 }
 
-type newProjectModel struct {
-	ID                       types.String `tfsdk:"id"`
+type ProjectModel struct {
+	ID                       types.Int64  `tfsdk:"id"`
 	LastUpdated              types.String `tfsdk:"last_updated"`
 	Name                     types.String `tfsdk:"name"`
 	AccountNumber            types.String `tfsdk:"account_number"`
@@ -70,8 +72,9 @@ func (r *projectResource) Metadata(_ context.Context, req resource.MetadataReque
 // Schema defines the schema for the resource.
 func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Resource intended to be used for the initial onboarding of an account to the nOps platform, used for communication with nOps APIs.",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
+			"id": schema.Int64Attribute{
 				Computed:    true,
 				Description: "nOps project identifier.",
 			},
@@ -101,7 +104,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 			"bucket": schema.StringAttribute{
 				Computed:    true,
-				Description: "AWS S3 bucket name to be used for CUR reports",
+				Description: "AWS S3 bucket name to be used for CUR reports, the initial value is `na`",
 			},
 			"external_id": schema.StringAttribute{
 				Computed:    true,
@@ -113,7 +116,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan newProjectModel
+	var plan ProjectModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -136,7 +139,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Map response body to schema and populate Computed attribute values
 	tflog.Debug(ctx, "Upstream project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
-	plan.ID = types.StringValue(strconv.Itoa(project.ID))
+	plan.ID = types.Int64Value(int64(project.ID))
 	plan.Client = types.Int64Value(int64(project.Client))
 	plan.Arn = types.StringValue(project.Arn)
 	plan.Bucket = types.StringValue(project.Bucket)
@@ -155,7 +158,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 
 // Read refreshes the Terraform state with the latest data.
 func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state newProjectModel
+	var state ProjectModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -171,11 +174,13 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	var existingProject bool = false
 	for _, project := range projects {
-		if types.StringValue(project.AccountNumber) == state.AccountNumber {
+		if types.Int64Value(int64(project.ID)) == state.ID {
+			existingProject = true
 			ctx = tflog.SetField(ctx, "project", project)
 			tflog.Debug(ctx, "Upstream project data received for account number "+project.AccountNumber+" name: "+project.Name)
-			state.ID = types.StringValue(strconv.Itoa(project.ID))
+			state.ID = types.Int64Value(int64(project.ID))
 			state.Client = types.Int64Value(int64(project.Client))
 			state.Arn = types.StringValue(project.Arn)
 			state.Bucket = types.StringValue(project.Bucket)
@@ -185,6 +190,9 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 			state.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 		}
 	}
+	if !existingProject {
+		resp.Diagnostics.AddError(fmt.Sprintf("Project %s wasn't found in nOps, please check", state.ID.String()), "Project not found")
+	}
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
@@ -192,6 +200,15 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+func (r *projectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Capability to import existing projects into the TF state without recreation.
+	val, err := strconv.Atoi(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error parsing ID for import, please check for a correct project ID", err.Error())
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), val)...)
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
