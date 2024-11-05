@@ -3,12 +3,12 @@
 page_title: "nops Provider"
 subcategory: ""
 description: |-
-  
+  Provider containing a set of nOps resources that can be used in order to integrate with the cost optimization platform seamlessly.
 ---
 
 # nops Provider
 
-
+Provider containing a set of nOps resources that can be used in order to integrate with the cost optimization platform seamlessly.
 
 
 
