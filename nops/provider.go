@@ -50,7 +50,7 @@ func (p *nopsIntegrationProvider) Metadata(_ context.Context, _ provider.Metadat
 // Schema defines the provider-level schema for configuration data.
 func (p *nopsIntegrationProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "",
+		Description: "Provider containing a set of nOps resources that can be used in order to integrate with the cost optimization platform seamlessly.",
 		Attributes: map[string]schema.Attribute{
 			"nops_api_key": schema.StringAttribute{
 				Optional:    true,
