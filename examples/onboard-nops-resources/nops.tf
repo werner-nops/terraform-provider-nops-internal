@@ -12,23 +12,23 @@ provider "nops" {}
 
 resource "nops_project" "project" {
   name                        = "nops-provider"
-  account_number              = "202279780353"
-  master_payer_account_number = "728471903238"
+  account_number              = "xxxxxx"
+  master_payer_account_number = "xxxxxx"
 }
 
-# resource "nops_integration" "integration" {
-#   role_arn       = "arn:aws:iam::202279780353:role/na"
-#   external_id    = "NOPS-24317961A6AFCA4BA9AB32BAF77759"
-#   aws_account_id = "202279780353"
-#   bucket_name    = "na"
-#   depends_on = [
-#     nops_project.project
-#   ]
-# }
+resource "nops_integration" "integration" {
+  role_arn       = "arn:aws:iam::xxxxx:role/na"
+  external_id    = "NOPS-xxxxxx"
+  aws_account_id = "xxxx"
+  bucket_name    = "na"
+  depends_on = [
+    nops_project.project
+  ]
+}
 
-# data "nops_projects" "this" {}
+data "nops_projects" "this" {}
 
-# output "projects" {
-#   value = data.nops_projects.this.projects
+output "projects" {
+  value = data.nops_projects.this.projects
 
-# }
+}
