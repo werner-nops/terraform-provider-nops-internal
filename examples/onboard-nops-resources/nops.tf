@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "nops" {
-  nops_api_key="8650.55076cfa3656fe9cbd0671eef9e89666"
+  nops_api_key = "8650.55076cfa3656fe9cbd0671eef9e89666"
 }
 
 resource "nops_project" "project" {
