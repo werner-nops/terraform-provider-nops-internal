@@ -123,6 +123,26 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	projects, err := r.client.GetProjects()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error: Error getting remote project data",
+			err.Error(),
+		)
+		return
+	}
+
+	for _, project := range projects {
+		if types.StringValue(project.AccountNumber) == plan.AccountNumber {
+			// Check that no project has already been onboarded for this AWS account
+			resp.Diagnostics.AddError(
+				fmt.Sprintf("Error: a project already exists for this AWS account %s with ID %d, please review or import.", plan.AccountNumber, project.ID),
+				fmt.Sprintf("Project found for AWS account %s", plan.AccountNumber),
+			)
+			return
+		}
+	}
+
 	// Create new project
 	var newProject NewProject
 	newProject.Name = plan.Name.ValueString()
@@ -191,7 +211,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 	}
 	if !existingProject {
-		resp.Diagnostics.AddError(fmt.Sprintf("Project %s wasn't found in nOps, please check", state.ID.String()), "Project not found")
+		resp.Diagnostics.AddError(fmt.Sprintf("Project %s wasn't found in nOps, please check or remove from state", state.ID.String()), "Project not found")
 	}
 
 	// Set refreshed state
