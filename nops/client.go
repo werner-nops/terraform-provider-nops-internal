@@ -47,12 +47,8 @@ func NewClient(host, api_key *string) (*Client, error) {
 	return &c, nil
 }
 
-func (c *Client) doRequest(req *http.Request, apiKey *string) ([]byte, error) {
+func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	token := c.Auth.ApiKey
-
-	if apiKey != nil {
-		token = *apiKey
-	}
 
 	req.Header.Set("X-Nops-Api-Key", token)
 	req.Header.Set("Content-Type", "application/json")
@@ -82,7 +78,7 @@ func (c *Client) GetProjects() ([]Project, error) {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req, nil)
+	body, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +103,7 @@ func (c *Client) CreateProject(project NewProject) (*Project, error) {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req, nil)
+	body, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +128,7 @@ func (c *Client) UpdateProject(project Project) (*Project, error) {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req, nil)
+	body, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +154,7 @@ func (c *Client) NotifyNops(payload Integration) (*IntegrationResponse, error) {
 		return nil, err
 	}
 
-	body, err := c.doRequest(req, nil)
+	body, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}
