@@ -37,9 +37,10 @@ resource "nops_project" "project" {
 
 ### Read-Only
 
-- `arn` (String) AWS IAM role to create/update account integration to nOps
+- `arn` (String) AWS IAM role ARN to create/update account integration to nOps
 - `bucket` (String) AWS S3 bucket name to be used for CUR reports, the initial value is `na`
 - `client` (Number) nOps client ID
 - `external_id` (String) Identifier to be used by nOps in order to securely assume a role in the target account
 - `id` (Number) nOps project identifier.
 - `last_updated` (String) Timestamp when the resource was last updated
+- `role_name` (String) Name of the IAM role to be used by nOps
