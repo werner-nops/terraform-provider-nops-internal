@@ -191,6 +191,7 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.Bucket = types.StringValue(project.Bucket)
 	plan.AccountNumber = types.StringValue(project.AccountNumber)
 	plan.ExternalID = types.StringValue(project.ExternalID)
+	plan.RoleName = types.StringValue(project.RoleName)
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	// Set state to fully populated data
@@ -230,6 +231,7 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
 			state.Arn = types.StringValue(project.Arn)
 			state.Bucket = types.StringValue(project.Bucket)
 			state.ExternalID = types.StringValue(project.ExternalID)
+			state.RoleName = types.StringValue(project.RoleName)
 		}
 	}
 	if !existingProject {
