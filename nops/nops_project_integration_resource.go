@@ -145,10 +145,6 @@ func (r *projectIntegrationResource) Create(ctx context.Context, req resource.Cr
 			// Map response body to schema and populate Computed attribute values
 			tflog.Debug(ctx, "Upstream integration project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
 			plan.ID = types.Int64Value(int64(project.ID))
-			plan.RoleArn = types.StringValue(project.Arn)
-			plan.BucketName = types.StringValue(project.Bucket)
-			plan.AwsAccountID = types.StringValue(project.AccountNumber)
-			plan.ExternalID = types.StringValue(project.ExternalID)
 			plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 		}
 	}
@@ -186,11 +182,6 @@ func (r *projectIntegrationResource) Read(ctx context.Context, req resource.Read
 			// Map response body to schema and populate Computed attribute values
 			tflog.Debug(ctx, "Upstream integration project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
 			state.ID = types.Int64Value(int64(project.ID))
-			state.RoleArn = types.StringValue(project.Arn)
-			state.BucketName = types.StringValue(project.Bucket)
-			state.AwsAccountID = types.StringValue(project.AccountNumber)
-			state.ExternalID = types.StringValue(project.ExternalID)
-			state.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 		}
 	}
 
@@ -248,10 +239,6 @@ func (r *projectIntegrationResource) Update(ctx context.Context, req resource.Up
 			// Map response body to schema and populate Computed attribute values
 			tflog.Debug(ctx, "Upstream integration project data received for project "+strconv.Itoa(project.ID)+" name: "+project.Name)
 			plan.ID = types.Int64Value(int64(project.ID))
-			plan.RoleArn = types.StringValue(project.Arn)
-			plan.BucketName = types.StringValue(project.Bucket)
-			plan.AwsAccountID = types.StringValue(project.AccountNumber)
-			plan.ExternalID = types.StringValue(project.ExternalID)
 			plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 		}
 	}
@@ -267,7 +254,8 @@ func (r *projectIntegrationResource) Update(ctx context.Context, req resource.Up
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *projectIntegrationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// No current project delete API on the nOps platform, this is a manual process done in the nOps UI
+	// No current project delete API on the nOps platform, this is a manual process done in the nOps UI.
+	// Framework automatically removes resource from state, no action to be taken on that side.
 	var state newProjectIntegrationModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -277,6 +265,6 @@ func (r *projectIntegrationResource) Delete(ctx context.Context, req resource.De
 }
 
 func (r *projectIntegrationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// Capability to import existing project already integrated into the nOps platform into the TF state without recreation.
+	// Capability to import existing project already integrated in the nOps platform into the TF state without recreation.
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("aws_account_id"), req.ID)...)
 }

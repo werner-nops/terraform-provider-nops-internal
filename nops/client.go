@@ -121,6 +121,31 @@ func (c *Client) CreateProject(project NewProject) (*Project, error) {
 	return &projects, nil
 }
 
+func (c *Client) UpdateProject(project Project) (*Project, error) {
+	rb, err := json.Marshal(project)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/c/admin/projectaws/", c.HostURL), strings.NewReader(string(rb)))
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.doRequest(req, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	projects := Project{}
+	err = json.Unmarshal(body, &projects)
+	if err != nil {
+		return nil, err
+	}
+
+	return &projects, nil
+}
+
 func (c *Client) NotifyNops(payload Integration) (*IntegrationResponse, error) {
 	rb, err := json.Marshal(payload)
 	if err != nil {

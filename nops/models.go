@@ -8,6 +8,7 @@ type Project struct {
 	AccountNumber string `json:"account_number"`
 	Name          string `json:"name"`
 	ExternalID    string `json:"external_id"`
+	RoleName      string `json:"role_name"`
 }
 
 type NewProject struct {
