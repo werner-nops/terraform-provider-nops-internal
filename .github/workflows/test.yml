@@ -82,5 +82,6 @@ jobs:
       - env:
           TF_ACC: "1"
           NOPS_API_KEY: ${{secrets.NOPS_API_KEY}}
+          NOPS_HOST: ${{secrets.NOPS_UAT_HOST}}
         run: go test -v -cover ./nops/
         timeout-minutes: 10

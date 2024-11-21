@@ -27,7 +27,9 @@ type AuthStruct struct {
 // NewClient - instantiates a client for the provider to use.
 func NewClient(host, api_key *string) (*Client, error) {
 	c := Client{
-		HTTPClient: &http.Client{Timeout: 10 * time.Second},
+		HTTPClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
 		// Default nOps URL
 		HostURL: HostURL,
 	}
@@ -57,6 +59,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
@@ -74,6 +77,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 
 func (c *Client) GetProjects() ([]Project, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/c/admin/projectaws/", c.HostURL), nil)
+
 	if err != nil {
 		return nil, err
 	}
@@ -117,13 +121,14 @@ func (c *Client) CreateProject(project NewProject) (*Project, error) {
 	return &projects, nil
 }
 
-func (c *Client) UpdateProject(project Project) (*Project, error) {
+func (c *Client) UpdateProject(id int64, project UpdateProject) (*Project, error) {
 	rb, err := json.Marshal(project)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/c/admin/projectaws/", c.HostURL), strings.NewReader(string(rb)))
+	req, err := http.NewRequest("PATCH", fmt.Sprintf("%s/c/admin/projectaws/%d/", c.HostURL, id), strings.NewReader(string(rb)))
+
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +145,21 @@ func (c *Client) UpdateProject(project Project) (*Project, error) {
 	}
 
 	return &projects, nil
+}
+
+func (c *Client) DeleteProject(id int64) error {
+
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s/c/admin/projectaws/%d/", c.HostURL, id), nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) NotifyNops(payload Integration) (*IntegrationResponse, error) {

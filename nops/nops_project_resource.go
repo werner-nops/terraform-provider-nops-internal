@@ -257,43 +257,46 @@ func (r *projectResource) ImportState(ctx context.Context, req resource.ImportSt
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// No current nOps API available to update project data. Just update state with values.
-	// This implementation was required for importing the resource to the state.
-	// All other values other than master account, account number and name are left intact. These changes won't show in the UI.
 	var plan ProjectModel
+	var currentState ProjectModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	getStateDiags := req.State.Get(ctx, &currentState)
+	resp.Diagnostics.Append(getStateDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	projects, err := r.client.GetProjects()
+	// We only allow updating name and account number in the project, the rest is handled by the integration.
+	// We get the updated values from the response as well.
+	updateProjectRequest := UpdateProject{}
+	updateProjectRequest.Name = plan.Name.ValueString()
+	updateProjectRequest.AccountNumber = plan.AccountNumber.ValueString()
+
+	project, err := r.client.UpdateProject(currentState.ID.ValueInt64(), updateProjectRequest)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error getting remote project data",
+			"Error updating project",
 			err.Error(),
 		)
 		return
 	}
 
-	var existingProject bool = false
-	for _, project := range projects {
-		if types.StringValue(project.AccountNumber) == plan.AccountNumber {
-			existingProject = true
-			ctx = tflog.SetField(ctx, "project", project)
-			tflog.Debug(ctx, "Upstream project data received for account number "+project.AccountNumber+" name: "+project.Name)
-			plan.ID = types.Int64Value(int64(project.ID))
-			plan.Client = types.Int64Value(int64(project.Client))
-			plan.Arn = types.StringValue(project.Arn)
-			plan.Bucket = types.StringValue(project.Bucket)
-			plan.ExternalID = types.StringValue(project.ExternalID)
-			plan.RoleName = types.StringValue(project.RoleName)
-			plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
-		}
-	}
-	if !existingProject {
-		resp.Diagnostics.AddError(fmt.Sprintf("Project %s wasn't found in nOps, please check or remove from state", plan.ID.String()), "Project not found")
-	}
+	// Set values to updated fields in nOps
+	ctx = tflog.SetField(ctx, "project_update", project)
+	tflog.Debug(ctx, fmt.Sprintf("Updated project data for project id %d, account number %s and name %s", project.ID, project.AccountNumber, project.Name))
+	plan.ID = types.Int64Value(int64(project.ID))
+	plan.Name = types.StringValue(project.Name)
+	plan.AccountNumber = types.StringValue(project.AccountNumber)
+	plan.Client = types.Int64Value(int64(project.Client))
+	plan.Arn = types.StringValue(project.Arn)
+	plan.Bucket = types.StringValue(project.Bucket)
+	plan.ExternalID = types.StringValue(project.ExternalID)
+	plan.RoleName = types.StringValue(project.RoleName)
+	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, plan)
@@ -306,5 +309,20 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// No current nOps API available to delete project
+	var state ProjectModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.client.DeleteProject(state.ID.ValueInt64())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error deleting project",
+			err.Error(),
+		)
+		return
+	}
+
 }

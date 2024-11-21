@@ -17,6 +17,11 @@ type NewProject struct {
 	MasterPayerAccountNumber string `json:"master_payer_account_number"`
 }
 
+type UpdateProject struct {
+	Name          string `json:"name"`
+	AccountNumber string `json:"account_number"`
+}
+
 type Integration struct {
 	RoleArn            string             `json:"role_arn"`
 	BucketName         string             `json:"bucket_name"`
